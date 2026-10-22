@@ -1,0 +1,10 @@
+
+services:
+  cloudforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cloudforge:1.0
+    container_name: cloudforge
+    command: ["health"]
+
