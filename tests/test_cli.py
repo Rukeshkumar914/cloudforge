@@ -1,8 +1,10 @@
+
 import json
 
 import pytest
 
 from app.cli import main
+
 
 def test_health_command(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["cloudforge", "health"])
@@ -16,6 +18,7 @@ def test_health_command(monkeypatch, capsys):
     assert "operating_system" in result
     assert "python_version" in result
 
+
 def test_metrics_command(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["cloudforge", "metrics"])
 
@@ -28,6 +31,46 @@ def test_metrics_command(monkeypatch, capsys):
     assert "memory_percent" in result
     assert "disk_percent" in result
 
+
+def test_health_report_export(monkeypatch, capsys, tmp_path):
+    output_file = tmp_path / "reports" / "health.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["cloudforge", "health", "--output", str(output_file)],
+    )
+
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert output_file.exists()
+    assert "Report saved to:" in captured.out
+
+    result = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result["status"] == "ok"
+    assert "operating_system" in result
+
+
+def test_metrics_report_export(monkeypatch, capsys, tmp_path):
+    output_file = tmp_path / "metrics.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["cloudforge", "metrics", "--output", str(output_file)],
+    )
+
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert output_file.exists()
+    assert "Report saved to:" in captured.out
+
+    result = json.loads(output_file.read_text(encoding="utf-8"))
+    assert "cpu_percent" in result
+    assert "memory_percent" in result
+    assert "disk_percent" in result
+
+
 def test_invalid_command(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["cloudforge", "invalid"])
 
@@ -38,6 +81,7 @@ def test_invalid_command(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "invalid choice" in captured.err
 
+
 def test_missing_command(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["cloudforge"])
 
@@ -47,3 +91,4 @@ def test_missing_command(monkeypatch, capsys):
     assert exc_info.value.code == 2
     captured = capsys.readouterr()
     assert "required" in captured.err
+
