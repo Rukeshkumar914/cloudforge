@@ -1,7 +1,13 @@
-
 import shutil
 
 import psutil
+
+
+DEFAULT_THRESHOLDS = {
+    "cpu_percent": 80.0,
+    "memory_percent": 80.0,
+    "disk_percent": 90.0,
+}
 
 
 def get_system_metrics():
@@ -23,5 +29,37 @@ def get_system_metrics():
     }
 
 
+def check_thresholds(metrics, thresholds=None):
+    """Return warnings for known metrics exceeding their thresholds."""
+    if thresholds is None:
+        thresholds = DEFAULT_THRESHOLDS
+
+    warnings = []
+
+    for metric, limit in thresholds.items():
+        if metric not in DEFAULT_THRESHOLDS:
+            continue
+
+        if metric not in metrics:
+            continue
+
+        value = metrics[metric]
+
+        if value > limit:
+            warnings.append({
+                "metric": metric,
+                "value": value,
+                "threshold": limit,
+                "message": (
+                    f"{metric} is {value}%, "
+                    f"above the {limit}% threshold"
+                ),
+            })
+
+    return warnings
+
+
 if __name__ == "__main__":
-    print(get_system_metrics())
+    metrics = get_system_metrics()
+    print(metrics)
+    print("Warnings:", check_thresholds(metrics))

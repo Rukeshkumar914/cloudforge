@@ -1,11 +1,14 @@
-
 import argparse
 import json
 import sys
 from pathlib import Path
 
 from app.health import get_system_health
-from app.monitor import get_system_metrics
+from app.monitor import (
+    DEFAULT_THRESHOLDS,
+    check_thresholds,
+    get_system_metrics,
+)
 
 
 def main():
@@ -27,6 +30,27 @@ def main():
         help="Save the report to a JSON file",
     )
 
+    parser.add_argument(
+        "--cpu-threshold",
+        type=float,
+        default=DEFAULT_THRESHOLDS["cpu_percent"],
+        help="CPU warning threshold percentage (default: 80)",
+    )
+
+    parser.add_argument(
+        "--memory-threshold",
+        type=float,
+        default=DEFAULT_THRESHOLDS["memory_percent"],
+        help="Memory warning threshold percentage (default: 80)",
+    )
+
+    parser.add_argument(
+        "--disk-threshold",
+        type=float,
+        default=DEFAULT_THRESHOLDS["disk_percent"],
+        help="Disk warning threshold percentage (default: 90)",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -34,6 +58,18 @@ def main():
             result = get_system_health()
         else:
             result = get_system_metrics()
+
+            thresholds = {
+                "cpu_percent": args.cpu_threshold,
+                "memory_percent": args.memory_threshold,
+                "disk_percent": args.disk_threshold,
+            }
+
+            warnings = check_thresholds(result, thresholds)
+
+            result["thresholds"] = thresholds
+            result["warnings"] = warnings
+            result["status"] = "warning" if warnings else "ok"
 
         report = json.dumps(result, indent=2)
 
@@ -56,4 +92,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
